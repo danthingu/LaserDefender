@@ -4,14 +4,16 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour {
 
+    public GameObject Projectile;
     private float speed = 15f;
     public float padding = 1f;
-
     float xmin;
     float xmax;
+    public float projectileSpeed;
+    public float firingRate = 0.2f;
 
-	// Use this for initialization
-	void Start ()
+    // Use this for initialization
+    void Start ()
     {
         // distance between camera and object (player), which is we want to clamp
         float distance = transform.position.z - Camera.main.transform.position.z;
@@ -22,10 +24,24 @@ public class PlayerController : MonoBehaviour {
         xmax = rightmost.x - padding;
     }
 
-    // Update is called once per frame
-    void Update ()
+    void Fire()
     {
-		if (Input.GetKey(KeyCode.LeftArrow))
+        GameObject beam = (GameObject)Instantiate(Projectile, this.transform.position, Quaternion.identity);
+        beam.GetComponent<Rigidbody2D>().velocity = new Vector3(0, projectileSpeed, 0);
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            InvokeRepeating("Fire", 0.000001f, firingRate);
+        }
+        if (Input.GetKeyUp(KeyCode.Space))
+        {
+            CancelInvoke("Fire");
+        }
+        if (Input.GetKey(KeyCode.LeftArrow))
         {
             this.transform.position += new Vector3(-speed * Time.deltaTime, 0, 0); //independent of frame rate
             
