@@ -1,75 +1,23 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
+using System.Collections;
 
-public class PlayerController : MonoBehaviour {
+public class PlayerController : MonoBehaviour
+{
+    public GameObject laser;
+    public float projectileSpeed = 10;
+    public float projectileRepeatRate = 0.2f;
 
-    public GameObject Projectile;
-    private float speed = 15f;
-    public float padding = 1f;
-    float xmin;
-    float xmax;
-    public float projectileSpeed;
-    public float firingRate = 0.2f;
+    public float speed = 15.0f;
+    public float padding = 1;
     public float health = 200;
 
     public AudioClip fireSound;
-    // Use this for initialization
-    void Start ()
+    public LevelManager levelManager;
+    private float xmax = -5;
+    private float xmin = 5;
+
+    void OnTriggerEnter2D(Collider2D collider)
     {
-        // distance between camera and object (player), which is we want to clamp
-        float distance = transform.position.z - Camera.main.transform.position.z;
-        Vector3 leftmost = Camera.main.ViewportToWorldPoint(new Vector3(0,0, distance)); //Viewport to world point (take worldpoint and return worldpoint)
-        // continue: 0 and 1 is x and y coor relative to the size of the screen --> 00: left bottom, 0.5 middle, 11: right top
-        Vector3 rightmost = Camera.main.ViewportToWorldPoint(new Vector3(1,0, distance));
-        xmin = leftmost.x + padding;
-        xmax = rightmost.x - padding;
-    }
-
-    void Fire()
-    {
-        Vector3 startPosition = transform.position + new Vector3(0, 1, 0);
-        GameObject beam = (GameObject)Instantiate(Projectile, startPosition, Quaternion.identity);
-        beam.GetComponent<Rigidbody2D>().velocity = new Vector3(0, projectileSpeed, 0);
-        AudioSource.PlayClipAtPoint(fireSound, this.transform.position);
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            Debug.Log("shooting");
-            InvokeRepeating("Fire", 0.000001f, firingRate);
-        }
-        if (Input.GetKeyUp(KeyCode.Space))
-        {
-            CancelInvoke("Fire");
-        }
-        if (Input.GetKey(KeyCode.LeftArrow))
-        {
-            this.transform.position += new Vector3(-speed * Time.deltaTime, 0, 0); //independent of frame rate
-            
-            /*----OR----------- Alternatively, you can also do */
-            //this.transform.position += Vector3.left * speed * Time.deltaTime;
-
-            
-        }
-        else if (Input.GetKey(KeyCode.RightArrow))
-        {
-            this.transform.position += new Vector3(speed * Time.deltaTime, 0, 0);
-
-            /*----OR----------- Alternatively, you can also do */
-            //this.transform.position += Vector3.right * speed * Time.deltaTime;
-        }
-
-        // restrict the player to the gamespace
-        float newX = Mathf.Clamp(transform.position.x, xmin, xmax);
-        transform.position = new Vector3(newX, this.transform.position.y, this.transform.position.z);
-    }
-    private void OnTriggerEnter2D(Collider2D collider)
-    {
-        Debug.Log(collider);
         Projectile missile = collider.gameObject.GetComponent<Projectile>();
         if (missile)
         {
@@ -84,8 +32,50 @@ public class PlayerController : MonoBehaviour {
 
     void Die()
     {
-        LevelManager levelManager = GameObject.Find("LevelManager").GetComponent<LevelManager>();
+        levelManager = GameObject.Find("LevelManager").GetComponent<LevelManager>();
         levelManager.LoadLevel("Win Screen");
         Destroy(gameObject);
+    }
+
+    void Start()
+    {
+        Camera camera = Camera.main;
+        float distance = transform.position.z - camera.transform.position.z;
+        xmin = camera.ViewportToWorldPoint(new Vector3(0, 0, distance)).x + padding;
+        xmax = camera.ViewportToWorldPoint(new Vector3(1, 1, distance)).x - padding;
+    }
+
+    void Fire()
+    {
+        GameObject beam = Instantiate(laser, transform.position, Quaternion.identity) as GameObject;
+        beam.GetComponent<Rigidbody2D>().velocity = new Vector3(0, projectileSpeed, 0);
+        AudioSource.PlayClipAtPoint(fireSound, transform.position);
+    }
+    void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            InvokeRepeating("Fire", 0.0001f, projectileRepeatRate);
+        }
+        if (Input.GetKeyUp(KeyCode.Space))
+        {
+            CancelInvoke("Fire");
+        }
+        if (Input.GetKey(KeyCode.LeftArrow))
+        {
+            transform.position = new Vector3(
+                Mathf.Clamp(transform.position.x - speed * Time.deltaTime, xmin, xmax),
+                transform.position.y,
+                transform.position.z
+            );
+        }
+        else if (Input.GetKey(KeyCode.RightArrow))
+        {
+            transform.position = new Vector3(
+                Mathf.Clamp(transform.position.x + speed * Time.deltaTime, xmin, xmax),
+                transform.position.y,
+                transform.position.z
+            );
+        }
     }
 }
